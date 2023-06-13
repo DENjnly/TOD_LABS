@@ -1,0 +1,116 @@
+import mysql.connector
+
+# Підключення до бази даних MySQL
+db = mysql.connector.connect(
+    host="localhost",
+    user="your_username",
+    password="your_password",
+    database="your_database"
+)
+
+cursor = db.cursor()
+
+# Створення таблиці students
+cursor.execute("CREATE TABLE students (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255), age INT, email VARCHAR(255))")
+
+# Додавання 5 студентів до таблиці students
+students_data = [
+    ("John", 20, "john@example.com"),
+    ("Alice", 22, "alice@example.com"),
+    ("Bob", 19, "bob@example.com"),
+    ("Eva", 21, "eva@example.com"),
+    ("Mike", 18, "mike@example.com")
+]
+
+insert_query = "INSERT INTO students (name, age, email) VALUES (%s, %s, %s)"
+cursor.executemany(insert_query, students_data)
+
+# Виконання запиту для вибірки всіх студентів з таблиці students
+cursor.execute("SELECT * FROM students")
+students = cursor.fetchall()
+for student in students:
+    print(student)
+
+# Виконання запиту для вибірки студента з таблиці students за ім'ям
+name = "John"
+cursor.execute("SELECT * FROM students WHERE name = %s", (name,))
+student = cursor.fetchone()
+print(student)
+
+# Оновлення віку одного зі студентів в таблиці students
+student_id = 1
+new_age = 21
+cursor.execute("UPDATE students SET age = %s WHERE id = %s", (new_age, student_id))
+db.commit()
+
+# Видалення студента з таблиці students за заданим ідентифікатором
+student_id = 2
+cursor.execute("DELETE FROM students WHERE id = %s", (student_id,))
+db.commit()
+
+# Використання транзакцій для додавання ще двох студентів до таблиці students
+try:
+    db.start_transaction()
+
+    new_students_data = [
+        ("Sarah", 20, "sarah@example.com"),
+        ("Tom", 19, "tom@example.com")
+    ]
+
+    cursor.executemany(insert_query, new_students_data)
+
+    db.commit()
+except:
+    db.rollback()
+
+# Створення таблиці courses
+cursor.execute("CREATE TABLE courses (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255), description VARCHAR(255), credits INT)")
+
+# Додавання 3 курсів до таблиці courses
+courses_data = [
+    ("Math", "Advanced mathematics", 4),
+    ("History", "World history", 3),
+    ("Science", "Introduction to science", 3)
+]
+
+insert_query = "INSERT INTO courses (name, description, credits) VALUES (%s, %s, %s)"
+cursor.executemany(insert_query, courses_data)
+db.commit()
+
+# Створення таблиці student_courses
+cursor.execute("CREATE TABLE student_courses (student_id INT, course_id INT, FOREIGN KEY (student_id) REFERENCES students(id), FOREIGN KEY (course_id) REFERENCES courses(id))")
+
+# Заповнення таблиці student_courses даними про курси, які вибрали студенти
+student_courses_data = [
+    (1, 1),
+    (1, 2),
+    (3, 2),
+    (4, 3)
+]
+
+insert_query = "INSERT INTO student_courses (student_id, course_id) VALUES (%s, %s)"
+cursor.executemany(insert_query, student_courses_data)
+db.commit()
+
+# Виконання запиту для вибірки всіх студентів, які вибрали певний курс
+course_id = 2
+cursor.execute("SELECT students.* FROM students JOIN student_courses ON students.id = student_courses.student_id WHERE student_courses.course_id = %s", (course_id,))
+students_in_course = cursor.fetchall()
+for student in students_in_course:
+    print(student)
+
+# Виконання запиту для вибірки всіх курсів, які вибрали студенти за певним ім'ям
+student_name = "John"
+cursor.execute("SELECT courses.* FROM courses JOIN student_courses ON courses.id = student_courses.course_id JOIN students ON students.id = student_courses.student_id WHERE students.name = %s", (student_name,))
+courses_for_student = cursor.fetchall()
+for course in courses_for_student:
+    print(course)
+
+# Використання JOIN для вибірки всіх студентів та їх курсів, на які вони записані
+cursor.execute("SELECT students.name, courses.name FROM students JOIN student_courses ON students.id = student_courses.student_id JOIN courses ON courses.id = student_courses.course_id")
+students_and_courses = cursor.fetchall()
+for row in students_and_courses:
+    print(row)
+
+# Закриття з'єднання з базою даних
+db.close()
