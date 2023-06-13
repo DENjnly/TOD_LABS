@@ -1,0 +1,37 @@
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+import pandas as pd
+import plotly.express as px
+
+# Завантаження даних з CSV файлу (припустимо, що у вас є файл з назвою 'stock_data.csv' у поточному каталозі)
+data = pd.read_csv('stock_data.csv')
+
+# Створення Dash-додатку
+app = dash.Dash(__name__)
+
+# Опис макету додатку
+app.layout = html.Div([
+    html.H1("Графік залежності ціни акцій від часу"),
+    dcc.Dropdown(
+        id='stock-dropdown',
+        options=[{'label': stock, 'value': stock} for stock in data['stock'].unique()],
+        value=data['stock'].unique()[0]
+    ),
+    dcc.Graph(id='stock-graph')
+])
+
+# Оновлення графіку при зміні вибраної акції
+@app.callback(
+    Output('stock-graph', 'figure'),
+    [Input('stock-dropdown', 'value')]
+)
+def update_graph(stock):
+    filtered_data = data[data['stock'] == stock]
+    fig = px.line(filtered_data, x='date', y='price', title=f"Ціна акцій {stock}")
+    return fig
+
+# Запуск додатку
+if __name__ == '__main__':
+    app.run_server(debug=True)
